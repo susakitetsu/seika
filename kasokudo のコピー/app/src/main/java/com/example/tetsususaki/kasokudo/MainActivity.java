@@ -16,7 +16,7 @@ public class MainActivity extends Activity implements SensorEventListener {
     /**
      * Called when the activity is first created.
      */
-    private int i = 0, count = 0, state = 0,flg=0;
+    private int i = 0, count = 0, state = 0, flg = 0;
     private double oldvalue[] = {0, 0, 0};
     private double d[] = {0, 0, 0}, newvalue[] = {0, 0, 0};
     private final int StateA = 0, StateB = 1, StateC = 2, StateD = 3;
@@ -70,7 +70,7 @@ public class MainActivity extends Activity implements SensorEventListener {
 
     private void showValues(float[] values) {
 
-        if (state == StateA) {//加速度センサーの初期値を取る
+        if (state == StateA ||state==StateD) {//加速度センサーの初期値を取る
             for (i = 0; i < 3; i++) {
                 d[i] = values[i];
                 newvalue[i] = d[i];
@@ -79,8 +79,8 @@ public class MainActivity extends Activity implements SensorEventListener {
             state = StateB;
         } else if (state == StateB) {//加速度センサーの値が変わったかどうか
             for (i = 0; i < 3; i++) {
-                newvalue[i] = newvalue[i] * 0.95 + values[i] * 0.05;
-                if (d[i] + 0.02 < newvalue[i] || d[i] - 0.02 > newvalue[i]) {
+                newvalue[i] = newvalue[i] * 0.98 + values[i] * 0.02;
+                if (d[i] + 0.03 < newvalue[i] || d[i] - 0.03 > newvalue[i]) {
                     text = "動作中";
                     state = StateC;
                     for (i = 0; i < 3; i++) {
@@ -90,34 +90,30 @@ public class MainActivity extends Activity implements SensorEventListener {
             }
         } else if (state == StateC) {//値が連続で変わらなかった場合D
             for (i = 0; i < 3; i++) {
-                newvalue[i] = newvalue[i] * 0.9 + values[i] * 0.1;
+                newvalue[i] = newvalue[i] * 0.98 + values[i] * 0.02;
 
                 if (oldvalue[i] + 0.02 < newvalue[i] || oldvalue[i] - 0.02 > newvalue[i]) {
                     oldvalue[i] = newvalue[i];
-                }else{
                     flg=1;
                 }
             }
-            if(flg==1){
-                count++;
-                flg=0;
-            }else{
+            if (flg == 1) {
                 count=0;
+                flg = 0;
+            } else {
+                count ++;
             }
             if (count > 30) {
                 state = StateD;
                 count = 0;
             }
-        } else if (state == StateD) {//初期値を取り直して表示を元に戻す
-            for (i = 0; i < 3; i++) {
-                d[i] = values[i];
-                newvalue[i] = d[i];
-            }
-            text = "停止";
-            state = StateB;
         }
+        String text2 = "" +
+                "[0]:" + newvalue[0] + "\n" +
+                "[1]:" + newvalue[1] + "\n" +
+                "[2]:" + newvalue[2] + "\n";
 
-        textView.setText(text);
+        textView.setText("センサーの値\n"+text2 +"\n"+ text+"\n\n"+"変化がなかった回数(30で停止)　"+count+"\n\n"+"基準値\n"+oldvalue[0]+"\n"+oldvalue[1]+"\n"+oldvalue[2]);
 
     }
 }
