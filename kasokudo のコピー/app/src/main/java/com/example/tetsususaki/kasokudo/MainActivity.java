@@ -3,7 +3,6 @@ package com.example.tetsususaki.kasokudo;
 import java.util.List;
 
 
-
 import android.app.Activity;
 import android.content.Context;
 import android.hardware.Sensor;
@@ -17,11 +16,11 @@ public class MainActivity extends Activity implements SensorEventListener {
     /**
      * Called when the activity is first created.
      */
-    private int  i2 = 0, i4 = 0, state = 0;
-    private double kari[]={0,0,0};
-    private double i[] = {0, 0, 0},atai[]={0,0,0};
-    private final int StateA=0,StateB=1,StateC=2,StateD=3;
-    String text2 = "";
+    private int i = 0, count = 0, state = 0,flg=0;
+    private double oldvalue[] = {0, 0, 0};
+    private double d[] = {0, 0, 0}, newvalue[] = {0, 0, 0};
+    private final int StateA = 0, StateB = 1, StateC = 2, StateD = 3;
+    String text = "";
     private SensorManager manager;
     private Sensor sensor;
     private TextView textView;
@@ -71,52 +70,54 @@ public class MainActivity extends Activity implements SensorEventListener {
 
     private void showValues(float[] values) {
 
-        if(state==StateA){//加速度センサーの初期値を取る
-            for (i2 = 0; i2 < 3; i2++) {
-                i[i2] = values[i2];
-                atai[i2]=i[i2];
+        if (state == StateA) {//加速度センサーの初期値を取る
+            for (i = 0; i < 3; i++) {
+                d[i] = values[i];
+                newvalue[i] = d[i];
             }
-            text2 = "停止";
+            text = "停止";
             state = StateB;
         } else if (state == StateB) {//加速度センサーの値が変わったかどうか
-            for (i2 = 0; i2 < 3; i2++) {
-                atai[i2]=atai[i2]*0.95+values[i2]*0.05;
-                if (i[i2] + 0.05 < atai[i2] || i[i2] - 0.05 > atai[i2]) {
-                    text2 = "動作中";
+            for (i = 0; i < 3; i++) {
+                newvalue[i] = newvalue[i] * 0.95 + values[i] * 0.05;
+                if (d[i] + 0.02 < newvalue[i] || d[i] - 0.02 > newvalue[i]) {
+                    text = "動作中";
                     state = StateC;
-                    for(i2=0;i2<3;i2++){
-                        kari[i2]=atai[i2];
+                    for (i = 0; i < 3; i++) {
+                        oldvalue[i] = newvalue[i];
                     }
                 }
             }
-        } else if(state==StateC){//値が連続で変わらなかった場合D
-            for (i2 = 0; i2 < 3; i2++) {
-                atai[i2] = atai[i2] * 0.9 + values[i2] * 0.1;
+        } else if (state == StateC) {//値が連続で変わらなかった場合D
+            for (i = 0; i < 3; i++) {
+                newvalue[i] = newvalue[i] * 0.9 + values[i] * 0.1;
+
+                if (oldvalue[i] + 0.02 < newvalue[i] || oldvalue[i] - 0.02 > newvalue[i]) {
+                    oldvalue[i] = newvalue[i];
+                }else{
+                    flg=1;
+                }
             }
-            if (kari[2] + 0.03 < atai[2] || kari[2] - 0.03 > atai[2]){
-                i4=0;
-                kari[2]=atai[2];
+            if(flg==1){
+                count++;
+                flg=0;
             }else{
-                i4++;
+                count=0;
             }
-            if (i4 > 5) {
+            if (count > 30) {
                 state = StateD;
-                i4 = 0;
+                count = 0;
             }
-        }else if (state == StateD) {//表示を元に戻す
-            for (i2 = 0; i2 < 3; i2++) {
-                i[i2] = values[i2];
-                atai[i2]=i[i2];
+        } else if (state == StateD) {//初期値を取り直して表示を元に戻す
+            for (i = 0; i < 3; i++) {
+                d[i] = values[i];
+                newvalue[i] = d[i];
             }
-            text2 = "停止";
+            text = "停止";
             state = StateB;
         }
-        String text = "" +
-                "values[0]:" + atai[0] + "\n" +
-                "values[1]:" + atai[1] + "\n" +
-                "values[2]:" + atai[2] + "\n";
 
-        textView.setText(text2);
+        textView.setText(text);
 
     }
 }
