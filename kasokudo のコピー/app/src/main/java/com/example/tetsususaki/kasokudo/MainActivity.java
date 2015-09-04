@@ -12,11 +12,15 @@ import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.widget.TextView;
 
+import android.widget.Button;
+import android.view.View;
+
 public class MainActivity extends Activity implements SensorEventListener {
     /**
      * Called when the activity is first created.
      */
-    private int i = 0, count = 0, state = 0, flg = 0;
+    private int i = 0, startcount=0,stopcount = 0, state = 0, startflg=0,stopflg = 0;
+    private final double stability=0.99;
     private double oldvalue[] = {0, 0, 0};
     private double d[] = {0, 0, 0}, newvalue[] = {0, 0, 0};
     private final int StateA = 0, StateB = 1, StateC = 2, StateD = 3;
@@ -38,6 +42,9 @@ public class MainActivity extends Activity implements SensorEventListener {
         List<Sensor> sensors = manager.getSensorList(Sensor.TYPE_ACCELEROMETER);
         if (sensors.size() > 0)
             sensor = sensors.get(0);
+
+        //((Button) find)
+
     }
 
     @Override
@@ -79,33 +86,52 @@ public class MainActivity extends Activity implements SensorEventListener {
             state = StateB;
         } else if (state == StateB) {//加速度センサーの値が変わったかどうか
             for (i = 0; i < 3; i++) {
-                newvalue[i] = newvalue[i] * 0.98 + values[i] * 0.02;
-                if (d[i] + 0.03 < newvalue[i] || d[i] - 0.03 > newvalue[i]) {
-                    text = "動作中";
-                    state = StateC;
-                    for (i = 0; i < 3; i++) {
-                        oldvalue[i] = newvalue[i];
-                    }
+                newvalue[i] = newvalue[i] * stability + values[i] * (1-stability);
+                if (d[i] + 0.005 < newvalue[i] || d[i] - 0.005 > newvalue[i]) {//+-0.01の範囲を超えたかどうかで判断
+                    newvalue[i]=values[i];
+                    d[i]=newvalue[i];
+                    startflg=1;
                 }
+            }
+            if (startflg == 1) {
+                startcount++;
+                startflg = 0;
+            } else {
+                if(startcount>0) {
+                    startcount --;
+                }
+            }
+            if (startcount > 30) {
+                text = "動作中";
+                state = StateC;
+                for (i = 0; i < 3; i++) {
+                    oldvalue[i] = newvalue[i];
+                }
+                startcount = 0;
             }
         } else if (state == StateC) {//値が連続で変わらなかった場合D
             for (i = 0; i < 3; i++) {
-                newvalue[i] = newvalue[i] * 0.98 + values[i] * 0.02;
+                newvalue[i] = newvalue[i] * stability + values[i] * (1-stability);
 
-                if (oldvalue[i] + 0.02 < newvalue[i] || oldvalue[i] - 0.02 > newvalue[i]) {
-                    oldvalue[i] = newvalue[i];
-                    flg=1;
+                if (oldvalue[i] + 0.01 < newvalue[i] || oldvalue[i] - 0.01 > newvalue[i]) {//+-0.01の範囲を超えたかどうかで判断
+                    stopflg=1;
                 }
             }
-            if (flg == 1) {
-                count=0;
-                flg = 0;
+            if (stopflg == 1) {
+                for(i=0;i<3;i++){
+                    oldvalue[i]=values[i];
+                    newvalue[i]=values[i];
+                }
+                if(stopcount>0) {
+                    stopcount =0;
+                }
+                stopflg = 0;
             } else {
-                count ++;
+                stopcount ++;
             }
-            if (count > 30) {
+            if (stopcount > 30) {
                 state = StateD;
-                count = 0;
+                stopcount = 0;
             }
         }
         String text2 = "" +
@@ -113,7 +139,7 @@ public class MainActivity extends Activity implements SensorEventListener {
                 "[1]:" + newvalue[1] + "\n" +
                 "[2]:" + newvalue[2] + "\n";
 
-        textView.setText("センサーの値\n"+text2 +"\n"+ text+"\n\n"+"変化がなかった回数(30で停止)　"+count+"\n\n"+"基準値\n"+oldvalue[0]+"\n"+oldvalue[1]+"\n"+oldvalue[2]);
+        textView.setText("センサーの値\n"+text2 +"\n"+ text+"\n\n"+"変化がなかった回数(30で停止)　"+stopcount+"\n\n"+"連続で変化した回数（30で動作中）\n"+startcount);
 
     }
 }
